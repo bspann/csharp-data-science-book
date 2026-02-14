@@ -241,36 +241,44 @@ public class ProductReviewAnalyzer
         Console.WriteLine("Building ML pipeline with TF-IDF vectorization...\n");
         
         // Build the text featurization pipeline
+        // Using FeaturizeText which combines normalization, tokenization, 
+        // stop word removal, and TF-IDF n-gram extraction in one step
+        var textOptions = new TextFeaturizingEstimator.Options
+        {
+            // Word-level features with TF-IDF weighting
+            WordFeatureExtractor = new WordBagEstimator.Options
+            {
+                NgramLength = 2,           // Include bigrams
+                UseAllLengths = true,      // Also include unigrams
+                Weighting = NgramExtractingEstimator.WeightingCriteria.TfIdf
+            },
+            // Character-level features (helps with typos, morphology)
+            CharFeatureExtractor = new WordBagEstimator.Options
+            {
+                NgramLength = 4,
+                UseAllLengths = false,
+                Weighting = NgramExtractingEstimator.WeightingCriteria.TfIdf
+            },
+            // Normalization options
+            CaseMode = TextNormalizingEstimator.CaseMode.Lower,
+            KeepDiacritics = false,
+            KeepPunctuations = false,
+            KeepNumbers = true,
+            // Include stop words removal
+            StopWordsRemoverOptions = new StopWordsRemovingEstimator.Options
+            {
+                Language = TextFeaturizingEstimator.Language.English
+            }
+        };
+        
         var pipeline = _mlContext.Transforms.Text
-            // Step 1: Normalize text (lowercase, remove diacritics)
-            .NormalizeText(
-                outputColumnName: "NormalizedText",
-                inputColumnName: nameof(ReviewData.ReviewText),
-                caseMode: TextNormalizingEstimator.CaseMode.Lower,
-                keepDiacritics: false,
-                keepPunctuations: false,
-                keepNumbers: true)
-            // Step 2: Tokenize into words
-            .Append(_mlContext.Transforms.Text.TokenizeIntoWords(
-                outputColumnName: "Tokens",
-                inputColumnName: "NormalizedText"))
-            // Step 3: Remove stop words
-            .Append(_mlContext.Transforms.Text.RemoveDefaultStopWords(
-                outputColumnName: "FilteredTokens",
-                inputColumnName: "Tokens",
-                language: StopWordsRemovingEstimator.Language.English))
-            // Step 4: Convert to TF-IDF weighted bag-of-words (with n-grams)
-            .Append(_mlContext.Transforms.Text.ProduceNgrams(
-                outputColumnName: "Ngrams",
-                inputColumnName: "FilteredTokens",
-                ngramLength: 2,                    // Include bigrams
-                useAllLengths: true,               // Also include unigrams
-                weighting: NgramExtractingEstimator.WeightingCriteria.TfIdf))
-            // Step 5: Rename to Features for the trainer
-            .Append(_mlContext.Transforms.CopyColumns(
+            // Step 1-4: FeaturizeText handles normalization, tokenization, 
+            // stop words, and TF-IDF n-gram extraction
+            .FeaturizeText(
                 outputColumnName: "Features",
-                inputColumnName: "Ngrams"))
-            // Step 6: Binary classification trainer
+                options: textOptions,
+                inputColumnNames: nameof(ReviewData.ReviewText))
+            // Step 5: Binary classification trainer
             .Append(_mlContext.BinaryClassification.Trainers.SdcaLogisticRegression(
                 labelColumnName: "Label",
                 featureColumnName: "Features",
