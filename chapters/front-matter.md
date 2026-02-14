@@ -8,7 +8,7 @@
 
 ### From Enterprise Code to Intelligent Applications
 
-**By [AUTHOR NAME]**
+**By Brian Spann**
 
 ---
 
