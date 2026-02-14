@@ -1,0 +1,56 @@
+# .NET
+bin/
+obj/
+*.user
+*.userosscache
+*.suo
+*.cache
+*.dll
+*.exe
+*.pdb
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+*~
+
+# Build
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+build/
+publish/
+
+# NuGet
+*.nupkg
+packages/
+.nuget/
+
+# ML.NET
+*.zip
+*.onnx
+!data/*.zip
+
+# Datasets (large files)
+data/*.csv
+data/*.parquet
+!data/.gitkeep
+
+# Jupyter/Polyglot Notebooks
+.ipynb_checkpoints/
+*.dib.meta
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test results
+TestResults/
+coverage/
