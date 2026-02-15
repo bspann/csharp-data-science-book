@@ -9,97 +9,7 @@ using Microsoft.ML.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// -----------------------------------------------------------------------------
-// ML.NET Model Types
-// -----------------------------------------------------------------------------
-
-// Input schema matching the trained sentiment model
-public class SentimentInput
-{
-    [LoadColumn(0)]
-    [ColumnName("SentimentText")]
-    public string Text { get; set; } = "";
-}
-
-// Output schema with prediction results
-public class SentimentPrediction
-{
-    [ColumnName("PredictedLabel")]
-    public bool IsPositive { get; set; }
-    
-    public float Probability { get; set; }
-    
-    public float Score { get; set; }
-}
-
-// -----------------------------------------------------------------------------
-// API Request/Response DTOs
-// -----------------------------------------------------------------------------
-
-public record PredictRequest(string Text);
-
-public record PredictResponse(
-    string Text,
-    string Sentiment,
-    float Confidence,
-    long InferenceMs);
-
-public record BatchPredictRequest(List<string> Texts);
-
-public record BatchPredictResponse(
-    List<PredictResponse> Results,
-    int Count,
-    long TotalMs);
-
-// -----------------------------------------------------------------------------
-// Health Check for Model
-// -----------------------------------------------------------------------------
-
-public class ModelHealthCheck : IHealthCheck
-{
-    private readonly PredictionEnginePool<SentimentInput, SentimentPrediction> _pool;
-    
-    public ModelHealthCheck(PredictionEnginePool<SentimentInput, SentimentPrediction> pool)
-    {
-        _pool = pool;
-    }
-    
-    public Task<HealthCheckResult> CheckHealthAsync(
-        HealthCheckContext context,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            // Run a test prediction to verify model is loaded and working
-            var testInput = new SentimentInput { Text = "health check" };
-            var stopwatch = Stopwatch.StartNew();
-            var prediction = _pool.Predict("SentimentModel", testInput);
-            stopwatch.Stop();
-            
-            // Validate the prediction is reasonable
-            if (prediction.Probability is < 0 or > 1)
-            {
-                return Task.FromResult(HealthCheckResult.Degraded(
-                    "Model returned invalid probability"));
-            }
-            
-            return Task.FromResult(HealthCheckResult.Healthy(
-                $"Model OK - inference: {stopwatch.ElapsedMilliseconds}ms"));
-        }
-        catch (Exception ex)
-        {
-            return Task.FromResult(HealthCheckResult.Unhealthy(
-                "Model prediction failed", ex));
-        }
-    }
-}
-
-// -----------------------------------------------------------------------------
-// Service Configuration
-// -----------------------------------------------------------------------------
-
 // Configure PredictionEnginePool for thread-safe model serving
-// This pools PredictionEngine instances to avoid expensive per-request creation
 var modelPath = builder.Configuration["ModelPath"] ?? "models/sentiment.zip";
 
 builder.Services.AddPredictionEnginePool<SentimentInput, SentimentPrediction>()
@@ -185,7 +95,7 @@ app.MapPost("/api/predict/batch", (
             Text: text,
             Sentiment: prediction.IsPositive ? "positive" : "negative",
             Confidence: prediction.Probability,
-            InferenceMs: 0); // Individual timing not tracked in batch
+            InferenceMs: 0);
     }).ToList();
     
     stopwatch.Stop();
@@ -202,14 +112,10 @@ app.MapPost("/api/predict/batch", (
 .WithName("PredictBatch")
 .WithOpenApi();
 
-// -----------------------------------------------------------------------------
-// Health Check Endpoints
-// -----------------------------------------------------------------------------
-
 // Liveness probe - just confirms app is running
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
-    Predicate = _ => false // Skip all checks, just confirm app responds
+    Predicate = _ => false
 });
 
 // Readiness probe - confirms model is loaded and working
@@ -234,3 +140,84 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 });
 
 app.Run();
+
+// -----------------------------------------------------------------------------
+// ML.NET Model Types (must be after top-level statements)
+// -----------------------------------------------------------------------------
+
+public class SentimentInput
+{
+    [LoadColumn(0)]
+    [ColumnName("SentimentText")]
+    public string Text { get; set; } = "";
+}
+
+public class SentimentPrediction
+{
+    [ColumnName("PredictedLabel")]
+    public bool IsPositive { get; set; }
+    
+    public float Probability { get; set; }
+    
+    public float Score { get; set; }
+}
+
+// -----------------------------------------------------------------------------
+// API Request/Response DTOs
+// -----------------------------------------------------------------------------
+
+public record PredictRequest(string Text);
+
+public record PredictResponse(
+    string Text,
+    string Sentiment,
+    float Confidence,
+    long InferenceMs);
+
+public record BatchPredictRequest(List<string> Texts);
+
+public record BatchPredictResponse(
+    List<PredictResponse> Results,
+    int Count,
+    long TotalMs);
+
+// -----------------------------------------------------------------------------
+// Health Check for Model
+// -----------------------------------------------------------------------------
+
+public class ModelHealthCheck : IHealthCheck
+{
+    private readonly PredictionEnginePool<SentimentInput, SentimentPrediction> _pool;
+    
+    public ModelHealthCheck(PredictionEnginePool<SentimentInput, SentimentPrediction> pool)
+    {
+        _pool = pool;
+    }
+    
+    public Task<HealthCheckResult> CheckHealthAsync(
+        HealthCheckContext context,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var testInput = new SentimentInput { Text = "health check" };
+            var stopwatch = Stopwatch.StartNew();
+            var prediction = _pool.Predict("SentimentModel", testInput);
+            stopwatch.Stop();
+            
+            if (prediction.Probability is < 0 or > 1)
+            {
+                return Task.FromResult(HealthCheckResult.Degraded(
+                    "Model returned invalid probability"));
+            }
+            
+            return Task.FromResult(HealthCheckResult.Healthy(
+                $"Model OK - inference: {stopwatch.ElapsedMilliseconds}ms"));
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(HealthCheckResult.Unhealthy(
+                "Model prediction failed", ex));
+        }
+    }
+}
