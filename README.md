@@ -1,3 +1,8 @@
+[![Buy on Amazon](https://img.shields.io/badge/Buy%20on-Amazon-orange?style=for-the-badge&logo=amazon)](https://www.amazon.com/dp/B0GNJBBNJG)
+[![.NET](https://img.shields.io/badge/.NET-10.0-purple?style=flat-square&logo=dotnet)](https://dotnet.microsoft.com/)
+[![ML.NET](https://img.shields.io/badge/ML.NET-5.0.0-blue?style=flat-square)](https://dotnet.microsoft.com/apps/machinelearning-ai/ml-dotnet)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
+
 # 📚 About This Repository
 
 This is the **official companion code repository** for the book *The C# Developer's Guide to Data Science: From App Dev to ML Engineer with .NET and Azure*.
