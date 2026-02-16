@@ -16,7 +16,7 @@
     <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.17.0" />
     
     <!-- Image processing support -->
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.7" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.5" />
   </ItemGroup>
 
